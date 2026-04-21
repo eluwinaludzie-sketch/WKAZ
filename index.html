@@ -167,7 +167,20 @@
 <div id="login-screen">
   <div class="login-card">
     <h1>Welcome to WKAZ</h1>
-    <p>Sign in to continue to your servers and messages</p>
+    <p id="login-msg">Sign in to continue</p>
+    
+    <div id="email-auth-area" style="margin-bottom: 20px;">
+      <input type="email" id="auth-email" placeholder="Email" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid var(--bg1); background: var(--bg1); color: white;">
+      <input type="password" id="auth-password" placeholder="Password" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid var(--bg1); background: var(--bg1); color: white;">
+      
+      <button class="btn-primary" id="email-action-btn" style="width: 100%; margin-bottom: 10px;">Sign In</button>
+      <p style="font-size: 12px; cursor: pointer; color: var(--accent);" id="toggle-auth-mode">Need an account? Register here.</p>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--text3); font-size: 12px;">
+      <div style="flex: 1; height: 1px; background: var(--bg4);"></div> OR <div style="flex: 1; height: 1px; background: var(--bg4);"></div>
+    </div>
+
     <button class="btn-google" id="login-btn">
       <svg viewBox="0 0 48 48"><path fill="#FFF" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.1 37.5 24 37.5c-7.5 0-13.5-6-13.5-13.5S16.5 10.5 24 10.5c3.3 0 6.3 1.2 8.6 3.2l6-6C34.8 4.5 29.7 2.5 24 2.5 12.7 2.5 3.5 11.7 3.5 23S12.7 43.5 24 43.5C35.8 43.5 45.5 34.5 45.5 23c0-1-.1-2-.1-3h-.9z"/></svg>
       Continue with Google
@@ -582,6 +595,50 @@ document.getElementById('msg-input').addEventListener('keydown', e => {
 document.getElementById('msg-input').addEventListener('input', function() {
   this.style.height='auto'; this.style.height=this.scrollHeight+'px';
 });
+
+
+let isRegistering = false;
+const emailBtn = document.getElementById('email-action-btn');
+const toggleText = document.getElementById('toggle-auth-mode');
+const emailInput = document.getElementById('auth-email');
+const passInput = document.getElementById('auth-password');
+
+// Toggle between Login and Register mode
+toggleText.onclick = () => {
+  isRegistering = !isRegistering;
+  emailBtn.textContent = isRegistering ? 'Create Account' : 'Sign In';
+  toggleText.textContent = isRegistering ? 'Already have an account? Login.' : 'Need an account? Register here.';
+  document.getElementById('login-msg').textContent = isRegistering ? 'Join the community' : 'Sign in to continue';
+};
+
+// Handle Email/Password Auth
+emailBtn.onclick = () => {
+  const email = emailInput.value;
+  const password = passInput.value;
+
+  if (!email || !password) {
+    notify("Please fill in all fields", "var(--red)");
+    return;
+  }
+
+  if (isRegistering) {
+    // Create New User
+    auth.createUserWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        // Set a default display name since email users don't have one from Google
+        return userCredential.user.updateProfile({
+          displayName: email.split('@')[0]
+        });
+      })
+      .catch(e => notify(e.message, 'var(--red)'));
+  } else {
+    // Login Existing User
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(e => notify(e.message, 'var(--red)'));
+  }
+};
+
+
 
 // ── MEMBERS ───────────────────────────────────────────────────────────────────
 function loadMembers(sid) {
