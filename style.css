@@ -1,0 +1,55 @@
+:root {
+    --bg-darker: #1e1f22;
+    --bg-dark: #2b2d31;
+    --bg-medium: #313338;
+    --bg-light: #383a40;
+    --text-main: #f2f3f5;
+    --text-muted: #949ba4;
+    --discord-blurple: #5865f2;
+    --discord-green: #23a55a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+body { background-color: var(--bg-medium); color: var(--text-main); height: 100vh; overflow: hidden; }
+
+.full-center { display: flex; align-items: center; justify-content: center; height: 100vh; background-image: url('https://discord.com/assets/7c01222420f01073.png'); background-size: cover; }
+
+/* Auth Card */
+.auth-card { background: var(--bg-medium); padding: 32px; border-radius: 8px; width: 480px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.auth-card h2 { margin-bottom: 8px; font-size: 24px; }
+.auth-card p { color: var(--text-muted); margin-bottom: 20px; }
+.input-group { text-align: left; margin-bottom: 20px; }
+.input-group label { display: block; font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; }
+.input-group input { width: 100%; background: var(--bg-darker); border: none; padding: 10px; color: white; border-radius: 3px; }
+
+.main-btn { width: 100%; background: var(--discord-blurple); color: white; border: none; padding: 12px; border-radius: 3px; cursor: pointer; font-weight: bold; margin-bottom: 8px; }
+.google-btn { width: 100%; background: white; color: #2e3338; border: none; padding: 10px; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; }
+.google-btn img { width: 18px; }
+.divider { margin: 16px 0; border-bottom: 1px solid var(--bg-light); position: relative; }
+.divider span { position: absolute; top: -10px; left: 45%; background: var(--bg-medium); padding: 0 10px; font-size: 12px; color: var(--text-muted); }
+
+/* App Layout */
+#app { display: flex; height: 100vh; }
+
+.server-sidebar { width: 72px; background: var(--bg-darker); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; }
+.server-icon { width: 48px; height: 48px; background: var(--bg-medium); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+.server-icon:hover { border-radius: 15px; background: var(--discord-blurple); }
+.server-sep { width: 32px; height: 2px; background: var(--bg-light); margin: 4px 0; }
+
+.nav-sidebar { width: 240px; background: var(--bg-dark); display: flex; flex-direction: column; }
+.sidebar-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); font-weight: bold; }
+.nav-items { flex: 1; padding: 8px; }
+.user-footer { background: #232428; padding: 8px; display: flex; align-items: center; gap: 8px; }
+#user-img { width: 32px; height: 32px; border-radius: 50%; background: #eee; }
+.user-meta { flex: 1; display: flex; flex-direction: column; font-size: 12px; }
+#user-tag { color: var(--text-muted); font-size: 11px; }
+
+.chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-medium); }
+.chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.2); gap: 8px; }
+.hash { color: var(--text-muted); font-size: 20px; }
+#messages-container { flex: 1; overflow-y: auto; padding: 16px; }
+.input-wrap { padding: 0 16px 24px 16px; }
+.input-box { background: var(--bg-light); border-radius: 8px; display: flex; align-items: center; padding: 0 16px; }
+.input-box input { flex: 1; background: none; border: none; padding: 11px; color: white; outline: none; }
+.attach-btn { background: var(--text-muted); border-radius: 50%; width: 24px; height: 24px; border: none; cursor: pointer; font-weight: bold; }
