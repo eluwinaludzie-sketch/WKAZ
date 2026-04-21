@@ -13,8 +13,8 @@
 
     <div id="auth-screen" class="full-center">
         <div class="auth-card">
-            <h2>Welcome back!</h2>
-            <p id="auth-msg">We're so excited to see you again!</p>
+            <h2 id="auth-title">Welcome back!</h2>
+            <p id="auth-msg" style="margin-bottom: 20px; color: #b5bac1;">We're so excited to see you again!</p>
             
             <div class="input-group">
                 <label>EMAIL</label>
@@ -26,50 +26,58 @@
             </div>
             
             <button id="email-btn" class="main-btn">Log In</button>
-            <p class="auth-toggle">Need an account? <span id="toggle-mode">Register</span></p>
+            <p class="auth-toggle">Need an account? <span id="toggle-mode" style="color: #00a8fc; cursor: pointer;">Register</span></p>
             
-            <div class="divider"><span>OR</span></div>
+            <div class="divider" style="margin: 20px 0; color: #4e5058;">OR</div>
             
             <button id="google-btn" class="google-btn">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_\"G\"_Logo.svg" alt="">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="18" alt="">
                 Continue with Google
             </button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay" style="display:none;">
+        <div class="auth-card">
+            <h3>User Settings</h3>
+            <div class="input-group"><label>DISPLAY NAME</label><input type="text" id="edit-display-name"></div>
+            <div class="input-group"><label>PFP URL</label><input type="text" id="edit-photo-url"></div>
+            
+            <button id="save-profile-btn" class="main-btn">Save Changes</button>
+            <button id="logout-btn-real" class="main-btn" style="background: #da373c; margin-top: 10px;">Log Out</button>
+            <button id="close-settings-btn" class="main-btn" style="background: #4e5058; margin-top: 10px;">Cancel</button>
         </div>
     </div>
 
     <div id="app" style="display: none;">
         <nav class="server-sidebar">
             <div class="server-icon active" id="home-btn">💬</div>
-            <div class="server-sep"></div>
             <div id="server-list"></div>
             <div class="server-icon add-btn" id="add-server-trigger">+</div>
         </nav>
 
         <aside class="nav-sidebar">
-            <header class="sidebar-header">
-                <span id="sidebar-name">Direct Messages</span>
-            </header>
+            <header class="sidebar-header"><span id="sidebar-name">Direct Messages</span></header>
             <div id="nav-content" class="nav-items">
                 </div>
             <footer class="user-footer">
-                <img id="user-img" src="" alt="">
+                <img id="user-img" src="" alt="" onerror="this.src='https://via.placeholder.com/32'">
                 <div class="user-meta">
-                    <span id="user-name">Username</span>
+                    <span id="user-name">User</span>
                     <span id="user-tag">#0000</span>
                 </div>
-                <button id="logout-btn">⚙️</button>
+                <button id="open-settings-btn" style="background:none; border:none; cursor:pointer; font-size: 18px;">⚙️</button>
             </footer>
         </aside>
 
         <main class="chat-area">
             <header class="chat-header">
-                <span class="hash">#</span>
-                <h3 id="target-name">general</h3>
+                <span style="color: #80848e; font-size: 20px;">#</span>
+                <h3 id="target-name" style="font-size: 16px;">general</h3>
             </header>
             <div id="messages-container"></div>
             <div class="input-wrap">
                 <div class="input-box">
-                    <button class="attach-btn">+</button>
                     <input type="text" id="chat-input" placeholder="Message...">
                 </div>
             </div>
