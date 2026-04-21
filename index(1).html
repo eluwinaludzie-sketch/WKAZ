@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WKAZ</title>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg1: #1e1f22; --bg2: #2b2d31; --bg3: #313338; --bg4: #383a40;
+    --bg5: #404249; --text1: #f2f3f5; --text2: #dbdee1; --text3: #949ba4;
+    --accent: #5865f2; --green: #23a55a; --red: #f23f43; --yellow: #f0b232;
+    --border: #1e1f22;
+  }
+  html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg3); color: var(--text2); font-size: 14px; overflow: hidden; }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; height: 100vh; }
+  #login-screen { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg3); }
+  .login-card { background: var(--bg2); border-radius: 8px; padding: 40px; text-align: center; width: 380px; }
+  .login-card h1 { font-size: 24px; color: var(--text1); margin-bottom: 8px; }
+  .login-card p { color: var(--text3); margin-bottom: 32px; }
+  .btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 12px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: filter .15s; }
+  .btn-google:hover { filter: brightness(1.1); }
+  .btn-google svg { width: 20px; height: 20px; }
+
+  /* ── SERVERS ── */
+  #servers { width: 72px; background: var(--bg1); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 2px; overflow-y: auto; flex-shrink: 0; }
+  #servers::-webkit-scrollbar { display: none; }
+  .srv-icon { width: 48px; height: 48px; border-radius: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #fff; transition: border-radius .2s, background .15s; flex-shrink: 0; position: relative; user-select: none; }
+  .srv-icon:hover, .srv-icon.active { border-radius: 16px; }
+  .srv-icon.active::before { content:''; position:absolute; left:-12px; top:50%; transform:translateY(-50%); width:4px; height:65%; background:#fff; border-radius:0 4px 4px 0; }
+  .srv-pill { width:4px; background:var(--text1); border-radius:0 4px 4px 0; position:absolute; left:-12px; transition:height .2s; }
+  .srv-icon:not(.active):hover .srv-pill { height:20px; }
+  .srv-divider { width: 32px; height: 1px; background: var(--bg4); margin: 4px 0; flex-shrink: 0; }
+  #add-server-btn { background: var(--bg3); color: var(--green); font-size: 26px; font-weight: 300; line-height: 1; }
+  #add-server-btn:hover { background: var(--green); color: #fff; }
+
+  /* ── SIDEBAR ── */
+  #sidebar { width: 240px; background: var(--bg2); display: flex; flex-direction: column; flex-shrink: 0; }
+  #sidebar-header { padding: 0 16px; height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 15px; color: var(--text1); cursor: pointer; user-select: none; flex-shrink: 0; }
+  #sidebar-header:hover { background: var(--bg4); }
+  #sidebar-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  #sidebar-list::-webkit-scrollbar { width: 4px; }
+  #sidebar-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+  .ch-group-header { padding: 16px 8px 4px 16px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .ch-group-header:hover { color: var(--text1); }
+  .ch-group-header .add-ch { font-size: 18px; font-weight: 400; opacity: 0; transition: opacity .15s; }
+  .ch-group-header:hover .add-ch { opacity: 1; }
+  .ch-item { padding: 6px 8px 6px 16px; border-radius: 4px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 6px; margin: 1px 8px; position: relative; }
+  .ch-item:hover { background: var(--bg5); color: var(--text2); }
+  .ch-item.active { background: var(--bg5); color: var(--text1); }
+  .ch-item .ch-icon { font-size: 17px; width: 20px; text-align: center; flex-shrink: 0; }
+  .ch-unread { width: 8px; height: 8px; background: var(--text1); border-radius: 50%; margin-left: auto; flex-shrink: 0; }
+  .dm-item { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; margin: 1px 8px; }
+  .dm-item:hover { background: var(--bg5); }
+  .dm-item.active { background: var(--bg5); }
+  .dm-info { flex: 1; min-width: 0; }
+  .dm-name { font-size: 14px; font-weight: 600; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dm-preview { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dm-item.active .dm-name, .dm-item:hover .dm-name { color: var(--text1); }
+  #user-bar { padding: 8px; background: #232428; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  #user-bar .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; cursor: pointer; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-info .uname { font-size: 13px; font-weight: 700; color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-info .ustatus { font-size: 11px; color: var(--text3); }
+  .icon-btn { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--text3); cursor: pointer; font-size: 18px; background: none; border: none; flex-shrink: 0; }
+  .icon-btn:hover { background: var(--bg5); color: var(--text2); }
+
+  /* ── MAIN ── */
+  #main { flex: 1; display: flex; flex-direction: column; background: var(--bg3); overflow: hidden; }
+  #main-header { padding: 0 16px; height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  #main-header .header-icon { font-size: 20px; color: var(--text3); }
+  #main-header .header-name { font-weight: 700; color: var(--text1); font-size: 16px; }
+  #main-header .header-desc { color: var(--text3); font-size: 13px; margin-left: 4px; }
+  #main-header .header-actions { margin-left: auto; display: flex; gap: 4px; }
+
+  /* ── MESSAGES ── */
+  #messages-wrap { flex: 1; display: flex; overflow: hidden; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px 0 8px; display: flex; flex-direction: column; }
+  #messages::-webkit-scrollbar { width: 6px; }
+  #messages::-webkit-scrollbar-thumb { background: var(--bg1); border-radius: 3px; }
+  .day-divider { display: flex; align-items: center; gap: 12px; padding: 8px 16px; color: var(--text3); font-size: 12px; font-weight: 600; }
+  .day-divider::before, .day-divider::after { content:''; flex:1; height:1px; background:var(--bg4); }
+  .welcome-msg { padding: 16px; text-align: left; margin-bottom: 16px; }
+  .welcome-msg h2 { font-size: 28px; color: var(--text1); margin-bottom: 4px; }
+  .welcome-msg p { color: var(--text3); font-size: 15px; }
+  .msg-group { padding: 2px 16px; display: flex; gap: 16px; border-radius: 4px; position: relative; }
+  .msg-group:hover { background: #2e3035; }
+  .msg-group .msg-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; margin-top: 2px; cursor: pointer; }
+  .msg-avatar-placeholder { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .msg-author { font-weight: 700; color: var(--text1); cursor: pointer; }
+  .msg-author:hover { text-decoration: underline; }
+  .msg-time { font-size: 11px; color: var(--text3); }
+  .msg-text { color: var(--text2); line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+  .msg-cont { padding: 2px 16px 2px 72px; color: var(--text2); line-height: 1.5; border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
+  .msg-cont:hover { background: #2e3035; }
+
+  /* ── MEMBER LIST ── */
+  #member-list { width: 240px; background: var(--bg2); overflow-y: auto; flex-shrink: 0; padding: 8px 0; display: none; }
+  #member-list.show { display: block; }
+  #member-list::-webkit-scrollbar { width: 4px; }
+  #member-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+  .member-group-label { padding: 16px 8px 4px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+  .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; margin: 1px 8px; cursor: pointer; }
+  .member-item:hover { background: var(--bg5); }
+  .member-item:hover .member-name { color: var(--text1); }
+  .member-name { font-size: 14px; font-weight: 600; color: var(--text3); }
+  .member-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; position: relative; }
+  .member-avatar-wrap { position: relative; flex-shrink: 0; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; position: absolute; bottom: 0; right: 0; border: 2px solid var(--bg2); }
+  .s-online { background: var(--green); }
+  .s-offline { background: var(--text3); }
+
+  /* ── INPUT ── */
+  #input-area { padding: 0 16px 16px; flex-shrink: 0; }
+  #input-box { background: var(--bg4); border-radius: 8px; display: flex; align-items: flex-end; gap: 4px; padding: 4px 8px; }
+  #msg-input { flex: 1; background: none; border: none; outline: none; color: var(--text2); font-size: 15px; padding: 8px 4px; font-family: inherit; resize: none; max-height: 200px; line-height: 1.5; }
+  #msg-input::placeholder { color: var(--text3); }
+  .input-action { color: var(--text3); cursor: pointer; padding: 8px 6px; border-radius: 4px; font-size: 20px; display: flex; align-items: center; border: none; background: none; }
+  .input-action:hover { color: var(--text2); background: var(--bg5); }
+
+  /* ── MODALS ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal { background: var(--bg2); border-radius: 8px; padding: 32px; width: 460px; max-width: 95vw; }
+  .modal h2 { font-size: 22px; color: var(--text1); margin-bottom: 4px; }
+  .modal p { color: var(--text3); margin-bottom: 24px; font-size: 14px; }
+  .modal label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); margin-bottom: 6px; }
+  .modal input { width: 100%; padding: 10px 12px; background: var(--bg1); border: 1px solid var(--bg1); border-radius: 4px; color: var(--text1); font-size: 15px; outline: none; margin-bottom: 16px; font-family: inherit; }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .btn-primary { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-ghost { padding: 10px 20px; background: none; color: var(--text2); border: none; border-radius: 4px; font-size: 14px; cursor: pointer; }
+  .btn-ghost:hover { text-decoration: underline; }
+  .modal-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--bg4); }
+  .modal-tab { padding: 8px 16px; cursor: pointer; color: var(--text3); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .modal-tab.active { color: var(--text1); border-bottom-color: var(--accent); }
+  .server-code-box { background: var(--bg1); border-radius: 4px; padding: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .server-code-box span { flex: 1; font-family: monospace; font-size: 15px; color: var(--text1); word-break: break-all; }
+  .copy-btn { padding: 6px 12px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+
+  /* ── DM NEW ── */
+  #new-dm-modal .search-results { max-height: 200px; overflow-y: auto; background: var(--bg1); border-radius: 4px; margin-top: -12px; margin-bottom: 12px; }
+  .user-result { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; }
+  .user-result:hover { background: var(--bg4); }
+  .user-result img { width: 36px; height: 36px; border-radius: 50%; }
+
+  /* ── NOTIFICATION ── */
+  #notif { position: fixed; bottom: 24px; right: 24px; background: var(--bg2); color: var(--text1); padding: 12px 20px; border-radius: 6px; font-size: 14px; z-index: 9999; border-left: 4px solid var(--accent); opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+  #notif.show { opacity: 1; transform: translateY(0); }
+
+  /* empty state */
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); gap: 12px; }
+  .empty-state svg { width: 80px; height: 80px; opacity: .3; }
+  .empty-state p { font-size: 16px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Welcome to WKAZ</h1>
+    <p>Sign in to continue to your servers and messages</p>
+    <button class="btn-google" id="login-btn">
+      <svg viewBox="0 0 48 48"><path fill="#FFF" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.1 37.5 24 37.5c-7.5 0-13.5-6-13.5-13.5S16.5 10.5 24 10.5c3.3 0 6.3 1.2 8.6 3.2l6-6C34.8 4.5 29.7 2.5 24 2.5 12.7 2.5 3.5 11.7 3.5 23S12.7 43.5 24 43.5C35.8 43.5 45.5 34.5 45.5 23c0-1-.1-2-.1-3h-.9z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <!-- SERVERS -->
+  <div id="servers">
+    <div class="srv-icon" id="dm-view-btn" title="Direct Messages" style="background:#5865f2;font-size:22px;">💬</div>
+    <div class="srv-divider"></div>
+    <div id="server-icons"></div>
+    <div class="srv-divider"></div>
+    <div class="srv-icon" id="add-server-btn" title="Add a Server">+</div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="sidebar-header"><span id="sidebar-title">Direct Messages</span></div>
+    <div id="sidebar-list"></div>
+    <div id="user-bar">
+      <img class="user-avatar" id="user-avatar-img" src="" />
+      <div class="user-info">
+        <div class="uname" id="user-display-name">User</div>
+        <div class="ustatus" id="user-uid-display"></div>
+      </div>
+      <button class="icon-btn" id="logout-btn" title="Sign out">⏻</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="main-header">
+      <span class="header-icon" id="header-icon">#</span>
+      <span class="header-name" id="header-name">general</span>
+      <span class="header-desc" id="header-desc"></span>
+      <div class="header-actions">
+        <button class="icon-btn" id="toggle-members-btn" title="Member list">👥</button>
+        <button class="icon-btn" id="invite-btn" title="Invite / Server Code" style="display:none">🔗</button>
+      </div>
+    </div>
+    <div id="messages-wrap">
+      <div id="messages">
+        <div class="empty-state" id="empty-state">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/></svg>
+          <p>Select a channel or DM to start chatting</p>
+        </div>
+      </div>
+      <div id="member-list"></div>
+    </div>
+    <div id="input-area" style="display:none">
+      <div id="input-box">
+        <textarea id="msg-input" placeholder="Message..." rows="1"></textarea>
+        <button class="input-action" id="send-btn" title="Send">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SERVER MODAL -->
+<div class="modal-overlay" id="add-server-modal" style="display:none">
+  <div class="modal">
+    <h2>Add a Server</h2>
+    <p>Create your own or join one with an invite code.</p>
+    <div class="modal-tabs">
+      <div class="modal-tab active" data-tab="create">Create</div>
+      <div class="modal-tab" data-tab="join">Join</div>
+    </div>
+    <div id="create-tab">
+      <label>Server Name</label>
+      <input type="text" id="new-server-name" placeholder="My Awesome Server" maxlength="50" />
+      <div class="modal-actions">
+        <button class="btn-ghost" id="cancel-server-btn">Cancel</button>
+        <button class="btn-primary" id="create-server-btn">Create</button>
+      </div>
+    </div>
+    <div id="join-tab" style="display:none">
+      <label>Invite Code</label>
+      <input type="text" id="join-code-input" placeholder="Paste invite code here" />
+      <div class="modal-actions">
+        <button class="btn-ghost" id="cancel-join-btn">Cancel</button>
+        <button class="btn-primary" id="join-server-btn">Join</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE MODAL -->
+<div class="modal-overlay" id="invite-modal" style="display:none">
+  <div class="modal">
+    <h2>Invite Friends</h2>
+    <p>Share this code with friends so they can join your server.</p>
+    <div class="server-code-box">
+      <span id="invite-code-text"></span>
+      <button class="copy-btn" id="copy-code-btn">Copy</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="close-invite-btn">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CHANNEL MODAL -->
+<div class="modal-overlay" id="add-channel-modal" style="display:none">
+  <div class="modal">
+    <h2>Create Channel</h2>
+    <label>Channel Name</label>
+    <input type="text" id="new-channel-name" placeholder="new-channel" maxlength="50" />
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancel-channel-btn">Cancel</button>
+      <button class="btn-primary" id="create-channel-btn">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW DM MODAL -->
+<div class="modal-overlay" id="new-dm-modal" style="display:none">
+  <div class="modal">
+    <h2>Open Direct Message</h2>
+    <p>Enter the UID of the user you want to message.</p>
+    <label>User ID (UID)</label>
+    <input type="text" id="dm-uid-input" placeholder="Paste their UID here" />
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancel-dm-btn">Cancel</button>
+      <button class="btn-primary" id="open-dm-btn">Open DM</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCJ8mRSIPUxPFZjvueVr1U0qMW5JqrS1bo",
+  authDomain: "wkaz-5d050.firebaseapp.com",
+  projectId: "wkaz-5d050",
+  storageBucket: "wkaz-5d050.firebasestorage.app",
+  messagingSenderId: "934837234847",
+  appId: "1:934837234847:web:15c9d266edac3833b3c6aa",
+  databaseURL: "https://wkaz-5d050-default-rtdb.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let currentServerId = null;
+let currentChannelId = null;
+let currentDmId = null;
+let msgListener = null;
+let memberListener = null;
+const COLOR_POOL = ['#5865f2','#1e8a5e','#a1302e','#a36023','#8249d3','#1a7fa5','#a5541a'];
+function colorFor(str) { let h=0; for(let c of str) h=(h*31+c.charCodeAt(0))&0xfffffff; return COLOR_POOL[h%COLOR_POOL.length]; }
+function initials(name) { return name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2) || '?'; }
+function timeStr(ts) {
+  const d=new Date(ts), n=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const hm=`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if(d.toDateString()===n.toDateString()) return `Today at ${hm}`;
+  const yest=new Date(n); yest.setDate(n.getDate()-1);
+  if(d.toDateString()===yest.toDateString()) return `Yesterday at ${hm}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${hm}`;
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+function notify(msg, color='var(--accent)') {
+  const el=document.getElementById('notif');
+  el.textContent=msg; el.style.borderLeftColor=color;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+document.getElementById('login-btn').onclick = () =>
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>notify(e.message,'var(--red)'));
+
+document.getElementById('logout-btn').onclick = () => auth.signOut();
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('user-display-name').textContent = user.displayName || 'User';
+    document.getElementById('user-uid-display').textContent = user.uid.slice(0,8)+'...';
+    const img = document.getElementById('user-avatar-img');
+    img.src = user.photoURL || '';
+    img.onerror = () => img.style.display='none';
+    db.ref(`users/${user.uid}`).set({ name: user.displayName, photo: user.photoURL||'', uid: user.uid });
+    loadServers();
+    loadDMs();
+    showDMView();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ── SERVERS ──────────────────────────────────────────────────────────────────
+function loadServers() {
+  db.ref(`userServers/${currentUser.uid}`).on('value', snap => {
+    const ids = snap.val() ? Object.keys(snap.val()) : [];
+    const container = document.getElementById('server-icons');
+    container.innerHTML = '';
+    ids.forEach(sid => {
+      db.ref(`servers/${sid}/name`).once('value', ns => {
+        const name = ns.val() || '?';
+        const div = document.createElement('div');
+        div.className = 'srv-icon';
+        div.style.background = colorFor(sid);
+        div.textContent = name.charAt(0).toUpperCase();
+        div.title = name;
+        div.dataset.sid = sid;
+        div.innerHTML += '<div class="srv-pill" style="height:0"></div>';
+        div.onclick = () => selectServer(sid, name);
+        container.appendChild(div);
+      });
+    });
+  });
+}
+
+function selectServer(sid, name) {
+  currentServerId = sid;
+  currentDmId = null;
+  document.querySelectorAll('.srv-icon').forEach(s => s.classList.remove('active'));
+  const icon = [...document.querySelectorAll('.srv-icon')].find(s => s.dataset.sid === sid);
+  if(icon) icon.classList.add('active');
+  document.getElementById('sidebar-title').textContent = name;
+  document.getElementById('invite-btn').style.display = 'flex';
+  document.getElementById('invite-code-text').textContent = sid;
+  loadChannels(sid);
+}
+
+function loadChannels(sid) {
+  const list = document.getElementById('sidebar-list');
+  list.innerHTML = '';
+  const header = document.createElement('div');
+  header.className = 'ch-group-header';
+  header.innerHTML = '<span>Text Channels</span><span class="add-ch" title="Add channel">+</span>';
+  header.querySelector('.add-ch').onclick = () => document.getElementById('add-channel-modal').style.display = 'flex';
+  list.appendChild(header);
+  db.ref(`servers/${sid}/channels`).on('value', snap => {
+    [...list.querySelectorAll('.ch-item')].forEach(el => el.remove());
+    const chs = snap.val() || {};
+    Object.entries(chs).forEach(([cid, ch]) => {
+      const div = document.createElement('div');
+      div.className = 'ch-item' + (cid === currentChannelId ? ' active' : '');
+      div.innerHTML = `<span class="ch-icon">#</span>${ch.name}`;
+      div.dataset.cid = cid;
+      div.onclick = () => selectChannel(sid, cid, ch.name);
+      list.appendChild(div);
+    });
+    if(Object.keys(chs).length === 0) {
+      const hint = document.createElement('div');
+      hint.style.cssText='padding:8px 16px;color:var(--text3);font-size:13px';
+      hint.textContent='No channels yet. Click + to add one.';
+      list.appendChild(hint);
+    }
+  });
+}
+
+function selectChannel(sid, cid, name) {
+  currentChannelId = cid;
+  currentDmId = null;
+  document.querySelectorAll('.ch-item').forEach(c => c.classList.remove('active'));
+  const el = [...document.querySelectorAll('.ch-item')].find(c => c.dataset.cid === cid);
+  if(el) el.classList.add('active');
+  document.getElementById('header-icon').textContent = '#';
+  document.getElementById('header-name').textContent = name;
+  document.getElementById('header-desc').textContent = '';
+  document.getElementById('toggle-members-btn').style.display = '';
+  document.getElementById('input-area').style.display = '';
+  document.getElementById('msg-input').placeholder = `Message #${name}`;
+  document.getElementById('empty-state').style.display = 'none';
+  loadMessages(`servers/${sid}/channels/${cid}/messages`, `# ${name}`);
+  loadMembers(sid);
+}
+
+// ── DIRECT MESSAGES ──────────────────────────────────────────────────────────
+function showDMView() {
+  currentServerId = null;
+  currentChannelId = null;
+  document.querySelectorAll('.srv-icon').forEach(s => s.classList.remove('active'));
+  document.getElementById('dm-view-btn').classList.add('active');
+  document.getElementById('sidebar-title').textContent = 'Direct Messages';
+  document.getElementById('invite-btn').style.display = 'none';
+  document.getElementById('toggle-members-btn').style.display = 'none';
+  document.getElementById('member-list').classList.remove('show');
+  loadDMs();
+}
+
+function loadDMs() {
+  const list = document.getElementById('sidebar-list');
+  if(currentServerId) return;
+  list.innerHTML = '';
+  const header = document.createElement('div');
+  header.className = 'ch-group-header';
+  header.innerHTML = '<span>Direct Messages</span><span class="add-ch" title="New DM">+</span>';
+  header.querySelector('.add-ch').onclick = () => document.getElementById('new-dm-modal').style.display = 'flex';
+  list.appendChild(header);
+  db.ref(`userDMs/${currentUser.uid}`).on('value', snap => {
+    [...list.querySelectorAll('.dm-item')].forEach(el => el.remove());
+    const dms = snap.val() || {};
+    Object.entries(dms).forEach(([dmId, info]) => {
+      const div = document.createElement('div');
+      div.className = 'dm-item' + (dmId === currentDmId ? ' active' : '');
+      const col = colorFor(info.otherUid||dmId);
+      div.innerHTML = `
+        <div style="position:relative;flex-shrink:0">
+          <div style="width:32px;height:32px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">${initials(info.name||'?')}</div>
+        </div>
+        <div class="dm-info">
+          <div class="dm-name">${info.name||'Unknown'}</div>
+          <div class="dm-preview dm-prev-${dmId}">...</div>
+        </div>`;
+      div.onclick = () => selectDM(dmId, info.name||'Unknown', info.otherUid);
+      list.appendChild(div);
+      db.ref(`dms/${dmId}/messages`).limitToLast(1).on('value', s => {
+        const msgs = s.val();
+        const prev = document.querySelector(`.dm-prev-${dmId}`);
+        if(prev && msgs) {
+          const last = Object.values(msgs)[0];
+          prev.textContent = last.text.slice(0,40);
+        }
+      });
+    });
+  });
+}
+
+function selectDM(dmId, name, otherUid) {
+  currentDmId = dmId;
+  currentChannelId = null;
+  document.querySelectorAll('.dm-item').forEach(d => d.classList.remove('active'));
+  const el = [...document.querySelectorAll('.dm-item')].find(d => d.onclick.toString().includes(dmId));
+  document.getElementById('header-icon').textContent = '👤';
+  document.getElementById('header-name').textContent = name;
+  document.getElementById('header-desc').textContent = '';
+  document.getElementById('toggle-members-btn').style.display = 'none';
+  document.getElementById('member-list').classList.remove('show');
+  document.getElementById('input-area').style.display = '';
+  document.getElementById('msg-input').placeholder = `Message ${name}`;
+  document.getElementById('empty-state').style.display = 'none';
+  loadMessages(`dms/${dmId}/messages`, name);
+}
+
+async function openDM(otherUid) {
+  if(otherUid === currentUser.uid) { notify('Cannot DM yourself', 'var(--red)'); return; }
+  const uids = [currentUser.uid, otherUid].sort();
+  const dmId = uids.join('_');
+  const snap = await db.ref(`users/${otherUid}`).once('value');
+  const other = snap.val();
+  if(!other) { notify('User not found', 'var(--red)'); return; }
+  await db.ref(`userDMs/${currentUser.uid}/${dmId}`).set({ name: other.name, otherUid });
+  await db.ref(`userDMs/${otherUid}/${dmId}`).set({ name: currentUser.displayName, otherUid: currentUser.uid });
+  selectDM(dmId, other.name, otherUid);
+  loadDMs();
+}
+
+// ── MESSAGES ─────────────────────────────────────────────────────────────────
+function loadMessages(path, channelName) {
+  if(msgListener) { db.ref(msgListener.path).off('value', msgListener.fn); }
+  const container = document.getElementById('messages');
+  container.innerHTML = `<div class="welcome-msg"><h2>Welcome to ${channelName}</h2><p>This is the beginning of this conversation.</p></div><div class="day-divider">Today</div>`;
+  let lastAuthor = null, lastTs = 0;
+  const fn = snap => {
+    const msgs = snap.val() || {};
+    const existing = new Set([...container.querySelectorAll('[data-mid]')].map(el=>el.dataset.mid));
+    Object.entries(msgs).forEach(([mid, m]) => {
+      if(existing.has(mid)) return;
+      const sameAuthor = m.authorId === lastAuthor && (m.ts - lastTs) < 5*60*1000;
+      const el = document.createElement('div');
+      if(sameAuthor) {
+        el.className = 'msg-cont'; el.dataset.mid = mid;
+        el.textContent = m.text;
+      } else {
+        el.className = 'msg-group'; el.dataset.mid = mid;
+        const col = colorFor(m.authorId||'x');
+        const photo = m.authorPhoto ? `<img class="msg-avatar" src="${m.authorPhoto}" onerror="this.style.display='none'">` : `<div class="msg-avatar-placeholder" style="background:${col}">${initials(m.authorName||'?')}</div>`;
+        el.innerHTML = `${photo}<div class="msg-body"><div class="msg-meta"><span class="msg-author">${m.authorName||'Unknown'}</span><span class="msg-time">${timeStr(m.ts)}</span></div><div class="msg-text">${m.text.replace(/</g,'&lt;')}</div></div>`;
+      }
+      container.appendChild(el);
+      lastAuthor = m.authorId; lastTs = m.ts;
+    });
+    container.scrollTop = container.scrollHeight;
+  };
+  db.ref(path).orderByChild('ts').limitToLast(50).on('value', fn);
+  msgListener = { path, fn };
+}
+
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if(!text || !currentUser) return;
+  const msg = { text, authorId: currentUser.uid, authorName: currentUser.displayName, authorPhoto: currentUser.photoURL||'', ts: Date.now() };
+  let path;
+  if(currentChannelId && currentServerId) path = `servers/${currentServerId}/channels/${currentChannelId}/messages`;
+  else if(currentDmId) path = `dms/${currentDmId}/messages`;
+  else return;
+  db.ref(path).push(msg);
+  input.value = ''; input.style.height = 'auto';
+}
+
+document.getElementById('send-btn').onclick = sendMessage;
+document.getElementById('msg-input').addEventListener('keydown', e => {
+  if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('msg-input').addEventListener('input', function() {
+  this.style.height='auto'; this.style.height=this.scrollHeight+'px';
+});
+
+// ── MEMBERS ───────────────────────────────────────────────────────────────────
+function loadMembers(sid) {
+  const ml = document.getElementById('member-list');
+  if(memberListener) { db.ref(memberListener).off(); }
+  ml.innerHTML = '<div class="member-group-label">Members</div>';
+  db.ref(`userServers`).orderByChild(sid).equalTo(true).on('value', snap => {
+    ml.innerHTML = '<div class="member-group-label">Members</div>';
+    if(!snap.val()) return;
+    Object.keys(snap.val()).forEach(uid => {
+      db.ref(`users/${uid}`).once('value', us => {
+        const u = us.val(); if(!u) return;
+        const col = colorFor(uid);
+        const div = document.createElement('div');
+        div.className = 'member-item';
+        const photo = u.photo ? `<div class="member-avatar-wrap"><img class="member-avatar" src="${u.photo}" onerror="this.style.display='none'"><div class="status-dot s-online"></div></div>` : `<div class="member-avatar-wrap"><div style="width:32px;height:32px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">${initials(u.name||'?')}</div><div class="status-dot s-online"></div></div>`;
+        div.innerHTML = `${photo}<span class="member-name">${u.name||'Unknown'}</span>`;
+        ml.appendChild(div);
+      });
+    });
+  });
+  memberListener = `userServers`;
+}
+
+document.getElementById('toggle-members-btn').onclick = () => document.getElementById('member-list').classList.toggle('show');
+
+// ── SERVER CREATE / JOIN ──────────────────────────────────────────────────────
+document.getElementById('add-server-btn').onclick = () => document.getElementById('add-server-modal').style.display = 'flex';
+document.getElementById('cancel-server-btn').onclick = () => document.getElementById('add-server-modal').style.display = 'none';
+document.getElementById('cancel-join-btn').onclick = () => document.getElementById('add-server-modal').style.display = 'none';
+
+document.querySelectorAll('.modal-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('create-tab').style.display = tab.dataset.tab==='create'?'':'none';
+    document.getElementById('join-tab').style.display = tab.dataset.tab==='join'?'':'none';
+  };
+});
+
+document.getElementById('create-server-btn').onclick = async () => {
+  const name = document.getElementById('new-server-name').value.trim();
+  if(!name) return;
+  const ref = db.ref('servers').push();
+  const sid = ref.key;
+  const defaultChannel = db.ref(`servers/${sid}/channels`).push().key;
+  await ref.set({ name, ownerId: currentUser.uid, channels: { [defaultChannel]: { name: 'general' } } });
+  await db.ref(`userServers/${currentUser.uid}/${sid}`).set(true);
+  document.getElementById('add-server-modal').style.display = 'none';
+  document.getElementById('new-server-name').value = '';
+  notify(`Server "${name}" created!`);
+  setTimeout(() => selectServer(sid, name), 500);
+};
+
+document.getElementById('join-server-btn').onclick = async () => {
+  const code = document.getElementById('join-code-input').value.trim();
+  if(!code) return;
+  const snap = await db.ref(`servers/${code}`).once('value');
+  if(!snap.val()) { notify('Invalid invite code', 'var(--red)'); return; }
+  await db.ref(`userServers/${currentUser.uid}/${code}`).set(true);
+  document.getElementById('add-server-modal').style.display = 'none';
+  document.getElementById('join-code-input').value = '';
+  notify(`Joined "${snap.val().name}"!`);
+  setTimeout(() => selectServer(code, snap.val().name), 500);
+};
+
+// ── INVITE ────────────────────────────────────────────────────────────────────
+document.getElementById('invite-btn').onclick = () => document.getElementById('invite-modal').style.display = 'flex';
+document.getElementById('close-invite-btn').onclick = () => document.getElementById('invite-modal').style.display = 'none';
+document.getElementById('copy-code-btn').onclick = () => {
+  navigator.clipboard.writeText(document.getElementById('invite-code-text').textContent);
+  notify('Code copied to clipboard!');
+};
+
+// ── ADD CHANNEL ───────────────────────────────────────────────────────────────
+document.getElementById('cancel-channel-btn').onclick = () => document.getElementById('add-channel-modal').style.display = 'none';
+document.getElementById('create-channel-btn').onclick = async () => {
+  const name = document.getElementById('new-channel-name').value.trim().replace(/\s+/g,'-').toLowerCase();
+  if(!name || !currentServerId) return;
+  await db.ref(`servers/${currentServerId}/channels`).push({ name });
+  document.getElementById('add-channel-modal').style.display = 'none';
+  document.getElementById('new-channel-name').value = '';
+  notify(`Channel #${name} created!`);
+};
+
+// ── DM ────────────────────────────────────────────────────────────────────────
+document.getElementById('cancel-dm-btn').onclick = () => document.getElementById('new-dm-modal').style.display = 'none';
+document.getElementById('open-dm-btn').onclick = async () => {
+  const uid = document.getElementById('dm-uid-input').value.trim();
+  if(!uid) return;
+  await openDM(uid);
+  document.getElementById('new-dm-modal').style.display = 'none';
+  document.getElementById('dm-uid-input').value = '';
+};
+
+// ── DM VIEW BTN ───────────────────────────────────────────────────────────────
+document.getElementById('dm-view-btn').onclick = showDMView;
+
+// ── CLOSE MODALS ON OVERLAY CLICK ─────────────────────────────────────────────
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.onclick = e => { if(e.target===overlay) overlay.style.display='none'; };
+});
+
+// ── UID COPY TIP ──────────────────────────────────────────────────────────────
+document.getElementById('user-uid-display').onclick = () => {
+  navigator.clipboard.writeText(currentUser.uid);
+  notify('Your UID copied! Share with friends to DM you.');
+};
+document.getElementById('user-uid-display').style.cursor='pointer';
+document.getElementById('user-uid-display').title='Click to copy your full UID';
+</script>
+</body>
+</html>
