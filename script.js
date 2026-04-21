@@ -38,7 +38,7 @@ document.getElementById('google-btn').onclick = () => {
     auth.signInWithPopup(provider).catch(e => alert(e.message));
 };
 
-document.getElementById('logout-btn-real').onclick = () => {
+document.getElementById('logout-btn').onclick = () => {
     auth.signOut().then(() => location.reload());
 };
 
